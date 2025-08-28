@@ -1,0 +1,38 @@
+name: Auto Update HTML from Google Drive
+
+on:
+  workflow_dispatch:    # 手动触发
+  schedule:
+    - cron: "0 */6 * * *"  # 每 6 小时自动运行一次
+
+jobs:
+  update-html:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Run Python script
+        env:
+          GDRIVE_SERVICE_ACCOUNT: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+        run: python download_drive_html.py
+
+      - name: Commit & push updates
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Auto update HTML from Google Drive" || echo "No changes to commit"
+          git push
